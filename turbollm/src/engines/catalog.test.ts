@@ -39,3 +39,18 @@ test('prism and beellama copy no longer claims TurboLLM cannot install a prebuil
     assert.match(e.description, /Install a prebuilt from its releases, or build it from source\.$/, id)
   }
 })
+
+// Requested engine from #76 has source-build support but publishes no prebuilt
+// release assets. Its catalog card must never imply a one-click install.
+test('llama.cpp-tq3 is a Linux CUDA source-build-only engine', () => {
+  const linux = catalogForPlatform('linux').find((entry) => entry.id === 'llama.cpp-tq3')
+  assert.ok(linux)
+  assert.equal(linux.repo, 'turbo-tan/llama.cpp-tq3')
+  assert.equal(linux.defaultBranch, 'main')
+  assert.equal(linux.installEndpoint, '')
+  assert.equal(linux.releaseInstall, undefined)
+  assert.deepEqual(linux.variants?.map((v) => v.hasPrebuilt), [false])
+  assert.deepEqual(linux.variants?.map((v) => v.requires.gpuVendor), [['nvidia']])
+  assert.equal(catalogForPlatform('win32').some((entry) => entry.id === 'llama.cpp-tq3'), false)
+  assert.equal(catalogForPlatform('darwin').some((entry) => entry.id === 'llama.cpp-tq3'), false)
+})
