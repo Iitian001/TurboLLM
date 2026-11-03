@@ -573,7 +573,8 @@ export async function execFetchUrl(args: Record<string, unknown>): Promise<strin
 
     try {
       // Lazy import keeps PDF.js out of the regular HTML fetch path.
-      const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+      const pdfjsModule = 'pdfjs-dist/legacy/build/pdf.mjs'
+      const pdfjs: typeof import('pdfjs-dist') = await import(pdfjsModule)
       const task = pdfjs.getDocument({
         data: bytes, isEvalSupported: false, useSystemFonts: false, disableFontFace: true,
       })
