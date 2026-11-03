@@ -539,8 +539,8 @@ export async function execFetchUrl(args: Record<string, unknown>): Promise<strin
   }
 
   const contentType = resp.headers.get('content-type') ?? ''
-  const isPdf = /\\bapplication\\/pdf\\b/i.test(contentType) ||
-    (/\\.pdf(?:[?#]|$)/i.test(url) && /\\bapplication\\/octet-stream\\b/i.test(contentType))
+  const isPdf = /\bapplication\/pdf\b/i.test(contentType) ||
+    (/\.pdf(?:[?#]|$)/i.test(url) && /\bapplication\/octet-stream\b/i.test(contentType))
   if (isPdf) {
     // PDF data is binary; decoding before PDF.js destroys compressed streams.
     // Preserve the existing SSRF-safe fetch and enforce the same 2 MiB raw-byte cap.
@@ -594,9 +594,9 @@ export async function execFetchUrl(args: Record<string, unknown>): Promise<strin
           }
           if (usedChars > budget) break
         }
-        const body = pages.join('\\n\\n')
+        const body = pages.join('\n\n')
         const truncated = usedChars > budget || pageLimit < pdf.numPages
-        return `${header}\\n${body.slice(0, budget) || '(no extractable text in PDF)'}${truncated ? FETCH_URL_TRUNCATION_MARKER : ''}`
+        return `${header}\n${body.slice(0, budget) || '(no extractable text in PDF)'}${truncated ? FETCH_URL_TRUNCATION_MARKER : ''}`
       } finally {
         await task.destroy()
       }
