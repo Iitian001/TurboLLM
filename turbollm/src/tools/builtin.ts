@@ -539,6 +539,72 @@ export async function execFetchUrl(args: Record<string, unknown>): Promise<strin
   }
 
   const contentType = resp.headers.get('content-type') ?? ''
+  const isPdf = /\\bapplication\\/pdf\\b/i.test(contentType) ||
+    (/\\.pdf(?:[?#]|$)/i.test(url) && /\\bapplication\\/octet-stream\\b/i.test(contentType))
+  if (isPdf) {
+    // PDF data is binary; decoding before PDF.js destroys compressed streams.
+    // Preserve the existing SSRF-safe fetch and enforce the same 2 MiB raw-byte cap.
+    if (!resp.body) return 'Error: PDF response has no body.'
+    const reader = resp.body.getReader()
+    const chunks: Uint8Array[] = []
+    let totalBytes = 0
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        totalBytes += value.byteLength
+        if (totalBytes > FETCH_URL_MAX_BYTES) return 'Error: PDF exceeds the 2 MiB fetch limit.'
+        chunks.push(value)
+      }
+    } catch (error) {
+      return `Error: could not read PDF — ${(error as Error).message}`
+    } finally {
+      await reader.cancel().catch(() => {})
+    }
+
+    const bytes = new Uint8Array(totalBytes)
+    let offset = 0
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset)
+      offset += chunk.byteLength
+    }
+    if (new TextDecoder().decode(bytes.subarray(0, 5)) !== '%PDF-')
+      return 'Error: server reported a PDF but did not return a PDF document.'
+
+    try {
+      // Lazy import keeps PDF.js out of the regular HTML fetch path.
+      const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+      const task = pdfjs.getDocument({
+        data: bytes, isEvalSupported: false, useSystemFonts: false, disableFontFace: true,
+      })
+      try {
+        const pdf = await task.promise
+        const header = `Retrieved: ${todayIso()}`
+        const budget = FETCH_URL_MAX_CHARS - header.length - 1 - FETCH_URL_TRUNCATION_MARKER.length
+        const pages: string[] = []
+        let usedChars = 0
+        const pageLimit = Math.min(pdf.numPages, 100)
+        for (let number = 1; number <= pageLimit; number++) {
+          const page = await pdf.getPage(number)
+          const pageText = await page.getTextContent()
+          const line = pageText.items.map((item) => 'str' in item ? item.str : '').join(' ').trim()
+          if (line) {
+            pages.push(line)
+            usedChars += line.length + 2
+          }
+          if (usedChars > budget) break
+        }
+        const body = pages.join('\\n\\n')
+        const truncated = usedChars > budget || pageLimit < pdf.numPages
+        return `${header}\\n${body.slice(0, budget) || '(no extractable text in PDF)'}${truncated ? FETCH_URL_TRUNCATION_MARKER : ''}`
+      } finally {
+        await task.destroy()
+      }
+    } catch (error) {
+      return `Error: could not extract PDF text — ${(error as Error).message}`
+    }
+  }
+
   // Streamed up to FETCH_URL_MAX_BYTES instead of resp.text(), which would buffer a huge or
   // endless body whole before any of it is cut.
   let text = ''
