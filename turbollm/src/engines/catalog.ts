@@ -488,6 +488,34 @@ const ALL: CatalogEngine[] = [
     ],
   },
   {
+    id: 'llama.cpp-tq3',
+    name: 'llama.cpp-tq3',
+    kind: 'llama-server',
+    description:
+      'CUDA-focused llama.cpp fork with TQ3_1S/TQ3_4S quantization support. Build from source and register the resulting llama-server.',
+    provision: 'github-release',
+    homepage: 'https://github.com/turbo-tan/llama.cpp-tq3',
+    repo: 'turbo-tan/llama.cpp-tq3',
+    // The fork currently publishes no GitHub Releases assets. Its supported
+    // source-build path is Linux + CUDA; do not claim one-click installation.
+    platforms: ['linux'],
+    support: 'experimental',
+    installEndpoint: '',
+    note: 'Linux NVIDIA CUDA source build only (including WSL2). Build llama-server from this fork and choose "Add your own engine"; there is currently no one-click binary download.',
+    defaultBranch: 'main',
+    variants: [
+      {
+        id: 'llama.cpp-tq3-source-cuda',
+        label: 'Build from source (CUDA)',
+        repo: 'turbo-tan/llama.cpp-tq3',
+        requires: { platform: ['linux'], gpuVendor: ['nvidia'] },
+        stability: 'experimental',
+        speed: 'fast',
+        hasPrebuilt: false,
+      },
+    ],
+  },
+  {
     id: 'ik_llama.cpp',
     name: 'ik_llama.cpp',
     kind: 'llama-server',
