@@ -3,24 +3,24 @@ import { test } from 'node:test'
 import { execFetchUrl } from './builtin'
 
 function smallPdf() {
-  const stream = 'BT /F1 12 Tf 20 60 Td (Hello PDF web fetch) Tj ET\\n'
+  const stream = 'BT /F1 12 Tf 20 60 Td (Hello PDF web fetch) Tj ET\n'
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
     '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 100] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-    `<< /Length ${Buffer.byteLength(stream)} >>\\nstream\\n${stream}endstream`,
+    `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}endstream`,
   ]
-  let pdf = '%PDF-1.4\\n'
+  let pdf = '%PDF-1.4\n'
   const offsets = [0]
   for (let i = 0; i < objects.length; i++) {
     offsets.push(Buffer.byteLength(pdf))
-    pdf += `${i + 1} 0 obj\\n${objects[i]}\\nendobj\\n`
+    pdf += `${i + 1} 0 obj\n${objects[i]}\nendobj\n`
   }
   const startXref = Buffer.byteLength(pdf)
-  pdf += `xref\\n0 ${offsets.length}\\n0000000000 65535 f \\n`
-  for (const n of offsets.slice(1)) pdf += `${String(n).padStart(10, '0')} 00000 n \\n`
-  pdf += `trailer\\n<< /Size ${offsets.length} /Root 1 0 R >>\\nstartxref\\n${startXref}\\n%%EOF\\n`
+  pdf += `xref\n0 ${offsets.length}\n0000000000 65535 f \n`
+  for (const n of offsets.slice(1)) pdf += `${String(n).padStart(10, '0')} 00000 n \n`
+  pdf += `trailer\n<< /Size ${offsets.length} /Root 1 0 R >>\nstartxref\n${startXref}\n%%EOF\n`
   return Buffer.from(pdf)
 }
 
