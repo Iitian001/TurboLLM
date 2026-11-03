@@ -51,6 +51,6 @@ test('llama.cpp-tq3 is a Linux CUDA source-build-only engine', () => {
   assert.equal(linux.releaseInstall, undefined)
   assert.deepEqual(linux.variants?.map((v) => v.hasPrebuilt), [false])
   assert.deepEqual(linux.variants?.map((v) => v.requires.gpuVendor), [['nvidia']])
-  assert.equal(catalogForPlatform('win32').some((entry) => entry.id === 'llama.cpp-tq3'), false)
-  assert.equal(catalogForPlatform('darwin').some((entry) => entry.id === 'llama.cpp-tq3'), false)
+  assert.equal(catalogForPlatform('win32').find((entry) => entry.id === 'llama.cpp-tq3')?.supportedHere, false)
+  assert.equal(catalogForPlatform('darwin').find((entry) => entry.id === 'llama.cpp-tq3')?.supportedHere, false)
 })
