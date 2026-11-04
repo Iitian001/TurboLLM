@@ -1,7 +1,7 @@
 /** Strips an MCP tool's server-prefix (`mcp__server__tool` → `tool`) and turns
  *  underscores into spaces for display, e.g. in the approval bar and tool-call cards. */
 export function friendlyName(name: string): string {
-  if (name.startsWith('mcp__')) return name.replace(/^mcp__[^_]+(?:_[^_]+)*__/, '')
+  if (name.startsWith('mcp__')) return name.replace(/^mcp__[^_]+(?:_[^_]+)*__/, '').replace(/_/g, ' ')
   return name.replace(/_/g, ' ')
 }
 
