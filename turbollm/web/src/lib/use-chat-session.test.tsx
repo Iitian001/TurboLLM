@@ -28,7 +28,8 @@ describe('useChatSession', () => {
       () => useChatSession({ activeId: 'c1', runningReplyId: 'a1', convReadAt: 1, onActiveReplyDone: () => {} }),
       { wrapper },
     )
-    await act(async () => { await Promise.resolve() })
+    // The session tells a burst of changes once more at its end, a task later.
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)) })
     expect(followCalls).toEqual(['c1'])
     expect(Object.keys(result.current.liveByConv)).toEqual([])
     expect(result.current.session).toBeDefined()

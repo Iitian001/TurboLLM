@@ -111,11 +111,31 @@ export class ChatSession {
 
   private setLiveByConv(next: Record<string, LiveState>) {
     this.state = { ...this.state, liveByConv: next }
-    for (const l of this.listeners) l()
+    this.notify()
   }
 
   private setRecentlyCompleted(next: Set<string>) {
     this.state = { ...this.state, recentlyCompletedIds: next }
+    for (const l of this.listeners) l()
+  }
+
+  // A burst of changes is told to the listeners once more at its end, not once per change. An attach replays a
+  // reply's frames from the start (every reasoning token, then a tool call waiting for approval) in one run of
+  // follow(), and a render forced per frame made React throw "Maximum update depth exceeded" a few hundred frames
+  // in: the attach failed, the approval bar never showed, and the page attached again on the next poll. The first
+  // change in a task is told at once, so a live reply, one network read per token, renders as before.
+  private notifyHeld = false
+  private notifyOwed = false
+
+  private notify() {
+    if (this.notifyHeld) { this.notifyOwed = true; return }
+    this.notifyHeld = true
+    setTimeout(() => {
+      this.notifyHeld = false
+      if (!this.notifyOwed) return
+      this.notifyOwed = false
+      for (const l of this.listeners) l()
+    }, 0)
     for (const l of this.listeners) l()
   }
 
@@ -330,7 +350,9 @@ export class ChatSession {
       if (started) this.clearLive(convId, own)
       const aborted = (e as Error)?.name === 'AbortError'
       if (!aborted) {
-        if (on?.quiet) on.gaveUp?.()
+        // A quiet attach shows no toast (the poll tries again), but it says why in the console: a failure here
+        // once left a waiting approval invisible with nothing to show for it.
+        if (on?.quiet) { console.warn('Could not follow the running reply:', e); on.gaveUp?.() }
         else toast.error(e instanceof ApiError ? e.message : 'Request failed.')
         if (!started) on?.refused?.(e)
       }
