@@ -86,11 +86,13 @@ describe('ChatSession.follow', () => {
     session.subscribe(() => { calls++; const l = session.getSnapshot().liveByConv.c1; states.push(l ? `${l.reasoning.length}:${l.timeline.map((b) => b.kind).join(',')}` : '<none>') })
     const burst: ChatFrame[] = [META, ...Array.from({ length: 400 }, () => ({ event: 'reasoning', data: { delta: 'x' } }) as ChatFrame),
       { event: 'tool_call', data: { id: 't1', name: 'run_code', args: { code: '2 + 2' }, status: 'awaiting_approval' } }]
-    void session.follow('c1', new AbortController(), (async function* () { yield* burst; await new Promise(() => {}) })())
+    const ac = new AbortController()
+    void session.follow('c1', ac, (async function* () { yield* burst; await new Promise(() => {}) })())
     await new Promise((r) => setTimeout(r, 5))
     expect(calls).toBeLessThanOrEqual(3)
     expect(states.at(-1)).toBe('400:tool')
     expect(session.getSnapshot().liveByConv.c1?.timeline.find((b) => b.kind === 'tool')).toMatchObject({ call: { status: 'awaiting_approval' } })
+    ac.abort()
   })
 
   it('keeps the text so far across a repeated meta, and clears it on reset', async () => {
