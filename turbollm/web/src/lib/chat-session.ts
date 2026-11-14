@@ -198,11 +198,16 @@ export class ChatSession {
 
   // ── the stream ──────────────────────────────────────────────────────────────
 
-  // Record one generated token for `convId` and return its rolling 2-second tok/s estimate.
+  // Record one generated token for `convId` and return its rolling 2-second tok/s estimate. In place: the timestamps
+  // are in order, so only the oldest can have left the window. Copying and filtering the whole list per token cost
+  // quadratic time on an attach's replay, where every frame lands within the window: 6,000 frames took 350 ms.
   private pushGenToken(convId: string) {
     const now = Date.now()
-    const timestamps = [...(this.deltaTimestamps[convId] ?? []), now].filter((t) => t > now - 2000)
-    this.deltaTimestamps[convId] = timestamps
+    const timestamps = (this.deltaTimestamps[convId] ??= [])
+    timestamps.push(now)
+    let expired = 0
+    while (timestamps[expired] <= now - 2000) expired++
+    if (expired > 0) timestamps.splice(0, expired)
     return Math.round((timestamps.length / 2) * 10) / 10
   }
 
